@@ -263,6 +263,7 @@ document.getElementById("detailContent").innerHTML=`
 <h3>Rs. ${p.price.toLocaleString("en-US")}/-</h3>
 <p>Fabric: ${p.fabric}</p>
 <p>Delivery: Within ${p.delivery}</p>
+${p.description ? `<p><strong>Special Notice:</strong> ${p.description}</p>` : ""}
 <p>Available Sizes: ${p.sizes.join(", ")}</p>
 <label>Select Size:</label><br><br>
 <select id="detailSize">
