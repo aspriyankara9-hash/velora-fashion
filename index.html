@@ -287,6 +287,7 @@ area.innerHTML=cart.map((p,i)=>`
 }
 document.getElementById("total").innerText=
 "Total: Rs. "+cart.reduce((s,p)=>s+p.price,0).toLocaleString("en-US");
+document.getElementById("cartCount").innerText=cart.length;
 }
 
 function removeItem(i){
