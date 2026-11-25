@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELORA Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f8f5f0;margin:0;padding:20px;color:#44382d}
+.container{max-width:650px;margin:auto}
+h1{text-align:center}
+.box{background:white;padding:20px;border-radius:12px;margin:15px 0}
+input,select,textarea,button{width:100%;padding:12px;margin:7px 0;box-sizing:border-box;border:1px solid #ddd;border-radius:7px}
+button{background:#594631;color:white;border:0;cursor:pointer;font-weight:bold}
+.product{border:1px solid #ddd;padding:12px;margin:12px 0;border-radius:8px}
+.product img{width:75px;height:75px;object-fit:cover;margin:4px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>VELORA ADMIN</h1>
+
+<div class="box" id="loginBox">
+<h3>Admin Login</h3>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">LOGIN</button>
+<p id="message"></p>
+</div>
+
+<div id="adminBox" class="hidden">
+<button onclick="logout()">LOGOUT</button>
+
+<div class="box">
+<h3 id="formTitle">Add New Product</h3>
+<form id="productForm">
+<input id="name" placeholder="Product Name" required>
+<input id="price" type="number" placeholder="Price (Rs.)" required>
+
+<select id="category">
+<option>Dresses</option>
+<option>Tops</option>
+<option>Blouses</option>
+<option>T-Shirts</option>
+<option>Jeans</option>
+<option>Pants</option>
+<option>Casual Wear</option>
+</select>
+
+<input id="fabric" placeholder="Fabric">
+<input id="delivery" placeholder="Delivery (e.g. 5-7 Days)">
+<input id="sizes" placeholder="Sizes (XS, S, M, L, XL)">
+<input id="colors" placeholder="Colours (Red, Black, Blue)">
+<textarea id="description" placeholder="Description / Special Notes"></textarea>
+
+<label>Product Photos (Select multiple)</label>
+<input id="images" type="file" accept="image/*" multiple>
+<p id="photoInfo"></p>
+
+<button type="submit">SAVE PRODUCT</button>
+<button type="button" onclick="cancelEdit()">CANCEL</button>
+</form>
+<p id="status"></p>
+</div>
+
+<div class="box">
+<h3>My Products</h3>
+<div id="productList"></div>
+</div>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://frxfxnpwqgpgzjfwxfij.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ZJnABFr5vARtQV-1itSqng_HbPzTV_S";
+
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let editingId = null;
+let editingImageUrls = [];
+
+async function login(){
+const email=document.getElementById("email").value;
+const password=document.getElementById("password").value;
+const msg=document.getElementById("message");
+
+const {error}=await db.auth.signInWithPassword({email,password});
+
+if(error){msg.textContent=error.message;return;}
+showAdmin();
+}
+
+async function logout(){
+await db.auth.signOut();
+location.reload();
+}
+
+function showAdmin(){
+document.getElementById("loginBox").classList.add("hidden");
+document.getElementById("adminBox").classList.remove("hidden");
+loadProducts();
+}
+
+db.auth.getSession().then(({data})=>{
+if(data.session) showAdmin();
+});
+
+async function uploadPhotos(files){
+let urls=[];
+
+for(const file of files){
+const path=db.auth.getUser().then(()=>null);
+const {data:{user}}=await db.auth.getUser();
+
+const filePath=user.id+"/"+Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+
+const {error}=await db.storage.from("product-images").upload(filePath,file);
+
+if(error) throw error;
+
+const {data}=db.storage.from("product-images").getPublicUrl(filePath);
+urls.push(data.publicUrl);
+}
+return urls;
+}
+
+document.getElementById("productForm").addEventListener("submit",async function(e){
+e.preventDefault();
+
+const status=document.getElementById("status");
+status.textContent="Saving...";
+
+try{
+const files=Array.from(document.getElementById("images").files);
+let urls=[...editingImageUrls];
+
+if(files.length){
+const newUrls=await uploadPhotos(files);
+urls=[...urls,...newUrls];
+}
+
+if(!urls.length){
+status.textContent="Please select at least one photo.";
+return;
+}
+
+const product={
+name:document.getElementById("name").value,
+price:Number(document.getElementById("price").value),
+category:document.getElementById("category").value,
+fabric:document.getElementById("fabric").value,
+delivery:document.getElementById("delivery").value,
+sizes:document.getElementById("sizes").value,
+colors:document.getElementById("colors").value,
+description:document.getElementById("description").value,
+image_urls:JSON.stringify(urls)
+};
+
+let result;
+
+if(editingId){
+result=await db.from("products").update(product).eq("id",editingId);
+}else{
+result=await db.from("products").insert(product);
+}
+
+if(result.error) throw result.error;
+
+status.textContent="Product saved successfully!";
+cancelEdit();
+loadProducts();
+
+}catch(error){
+status.textContent="Error: "+error.message;
+}
+});
+
+async function loadProducts(){
+const {data,error}=await db.from("products").select("*").order("created_at",{ascending:false});
+
+const list=document.getElementById("productList");
+
+if(error){list.textContent=error.message;return;}
+
+list.innerHTML="";
+
+data.forEach(p=>{
+let urls=[];
+try{urls=JSON.parse(p.image_urls||"[]");}catch(e){}
+
+const div=document.createElement("div");
+div.className="product";
+
+const images=urls.map(url=>`<img src="${url}">`).join("");
+
+div.innerHTML=`
+<h3>${p.name}</h3>
+<p>Rs. ${p.price}</p>
+${images}
+<button onclick="editProduct(${p.id})">EDIT</button>
+<button onclick="deleteProduct(${p.id})">DELETE</button>
+`;
+
+list.appendChild(div);
+});
+}
+
+async function editProduct(id){
+const {data,error}=await db.from("products").select("*").eq("id",id).single();
+if(error){alert(error.message);return;}
+
+editingId=id;
+
+document.getElementById("name").value=data.name||"";
+document.getElementById("price").value=data.price||"";
+document.getElementById("category").value=data.category||"Dresses";
+document.getElementById("fabric").value=data.fabric||"";
+document.getElementById("delivery").value=data.delivery||"";
+document.getElementById("sizes").value=data.sizes||"";
+document.getElementById("colors").value=data.colors||"";
+document.getElementById("description").value=data.description||"";
+
+try{editingImageUrls=JSON.parse(data.image_urls||"[]");}
+catch(e){editingImageUrls=[];}
+
+document.getElementById("formTitle").textContent="Edit Product";
+document.getElementById("photoInfo").textContent=editingImageUrls.length+" existing photo(s). New photos will be added.";
+window.scrollTo(0,0);
+}
+
+async function deleteProduct(id){
+if(!confirm("Delete this product?"))return;
+
+const {error}=await db.from("products").delete().eq("id",id);
+
+if(error){alert(error.message);return;}
+
+alert("Product deleted.");
+loadProducts();
+}
+
+function cancelEdit(){
+editingId=null;
+editingImageUrls=[];
+document.getElementById("productForm").reset();
+document.getElementById("formTitle").textContent="Add New Product";
+document.getElementById("photoInfo").textContent="";
+}
+
+</script>
+</body>
+</html>
