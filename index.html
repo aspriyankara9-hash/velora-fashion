@@ -329,6 +329,19 @@ message+="\nTotal: Rs. "+cart.reduce((s,p)=>s+p.price,0);
 window.open("https://wa.me/"+whatsapp+"?text="+encodeURIComponent(message),"_blank");
 }
 
+function filterProducts(){
+let search=document.getElementById("searchInput").value.toLowerCase();
+let category=document.getElementById("categoryFilter").value;
+
+let filtered=products.filter(p=>{
+let matchName=p.name.toLowerCase().includes(search);
+let matchCategory=category==="All" || p.category===category;
+return matchName && matchCategory;
+});
+
+showProducts(filtered);
+}
+
 showProducts();
 </script>
 </body>
