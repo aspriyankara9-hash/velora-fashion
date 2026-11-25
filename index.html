@@ -40,6 +40,54 @@ footer{text-align:center;background:#574638;color:white;padding:30px}
  .product img{height:175px}
  section{padding:30px 4%}
 }
+/* VELORA MOBILE RESPONSIVE DESIGN */
+
+@media screen and (max-width: 768px) {
+
+header {
+flex-direction: column;
+gap: 15px;
+padding: 15px !important;
+}
+
+header .logo img {
+height: 75px !important;
+}
+
+header nav {
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+gap: 18px !important;
+}
+
+.hero {
+padding: 25px 15px;
+text-align: center;
+}
+
+.hero img {
+width: 100%;
+height: auto;
+}
+
+.products,
+.product-grid {
+grid-template-columns: repeat(2, 1fr);
+gap: 12px;
+}
+
+.product img {
+width: 100%;
+height: auto;
+}
+
+button,
+.btn {
+max-width: 100%;
+}
+
+}
 </style>
 </head>
 <body>
