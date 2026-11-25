@@ -130,6 +130,27 @@ max-width: 100%;
 
 <section id="shop">
 <h2>Our Collection</h2>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:20px 0;">
+<input 
+type="text" 
+id="searchInput" 
+placeholder="Search for clothes..." 
+oninput="filterProducts()"
+style="flex:1;min-width:180px;padding:12px;border:1px solid #c5a46d;border-radius:5px;">
+
+<select id="categoryFilter" onchange="filterProducts()" style="padding:12px;border:1px solid #c5a46d;border-radius:5px;">
+<option value="All">All Categories</option>
+<option value="Dresses">Dresses</option>
+<option value="Tops">Tops</option>
+<option value="Blouses">Blouses</option>
+<option value="T-Shirts">T-Shirts</option>
+<option value="Jeans">Jeans</option>
+<option value="Pants">Pants</option>
+<option value="Casual Wear">Casual Wear</option>
+</select>
+</div>
+
 <div class="products" id="products"></div>
 </section>
 
@@ -194,8 +215,11 @@ image:"red-frock-2.jpeg.jpeg"
 
 let cart=[];
 
-function showProducts(){
-document.getElementById("products").innerHTML=products.map((p,i)=>`
+
+function showProducts(list = products){
+document.getElementById("products").innerHTML=list.map((p)=>{
+let i=products.indexOf(p);
+return `
 <div class="product">
 <img src="${p.image}" alt="${p.name}" onclick="openDetails(${i})">
 <h3>${p.name}</h3>
@@ -205,8 +229,10 @@ document.getElementById("products").innerHTML=products.map((p,i)=>`
 ${p.sizes.map(s=>`<option>${s}</option>`).join("")}
 </select>
 <button onclick="addToCart(${i})">ADD TO CART</button>
-</div>`).join("");
+</div>`;
+}).join("");
 }
+
 
 function openDetails(i){
 let p=products[i];
