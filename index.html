@@ -191,29 +191,48 @@ style="flex:1;min-width:180px;padding:12px;border:1px solid #c5a46d;border-radiu
 <p>© 2026 VELORA. All Rights Reserved.</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 const whatsapp="94760507472";
 
-const products=[
-{
-name:"Red Maxi Frock",
-price:2000,
-category:"Dresses",
-fabric:"Masha",
-delivery:"5-7 Days",
-sizes:["XS","S","M","L","XL"],
-image:"red-frock.jpeg.jpeg"
-},
-{
-name:"Masha Fabric Frock",
-price:2200,
-category:"Dresses",
-fabric:"Masha",
-delivery:"5-7 Days",
-sizes:["XS","S","M","L","XL"],
-image:"red-frock-2.jpeg.jpeg"
+const SUPABASE_URL = "https://frxfxnpwqgpgzjfwxfij.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ZJnABFr5vARtQV-1itSqng_HbPzTV_S";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let products = [];
+
+async function loadProductsFromDatabase() {
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Products loading error:", error);
+    return;
+  }
+
+  products = data.map(p => {
+    let images = [];
+    try {
+      images = JSON.parse(p.image_urls || "[]");
+    } catch (e) {}
+
+    return {
+      ...p,
+      sizes: (p.sizes || "").split(",").map(s => s.trim()),
+      image: images[0] || ""
+    };
+  });
+
+  showProducts();
+loadProductsFromDatabase();
 }
-];
 
 let cart=[];
 
@@ -344,8 +363,9 @@ return matchName && matchCategory;
 
 showProducts(filtered);
 }
+ 
+loadProductsFromDatabase();
 
-showProducts();
 </script>
 </body>
 </html>
